@@ -45,8 +45,8 @@ class Operator:
         lops = OperatorString.from_op(self)
         if isinstance(other, Operator):
             rops = OperatorString.from_op(other)
-        elif isinstance(other, float):
-            rops = OperatorString.from_op(Operator(), [1.0])
+        elif isinstance(other, float) or isinstance(other, complex):
+            rops = OperatorString.from_op(Operator(), [other])
         else:
             rops = other
         return lops + rops
@@ -74,6 +74,10 @@ class Operator:
         else:
             rops = other
         return rops * lops
+
+    def __truediv__(self, other):
+        ops = OperatorString.from_op(self)
+        return ops / other
 
     def __radd__(self, other):
         return self.__add__(other)
@@ -121,6 +125,17 @@ class OperatorString:
         _instance.opdict = opdict
         return _instance
 
+    @classmethod
+    def from_matrix(cls, matrix, cv, rv=None):
+        if rv is None:
+            rv = [op.D for op in cv]
+        assert len(cv) == len(rv) == matrix.shape[0] == matrix.shape[1]
+        s = 0.0
+        for i in range(len(cv)):
+            for j in range(len(cv)):
+                s += rv[i] * matrix[i, j] * cv[j]
+        return s
+
     def is_all_normal_ordered(self):
         for oplist in self.opdict:
             d = True
@@ -162,7 +177,7 @@ class OperatorString:
     __str__ = __repr__
 
     def __add__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, complex):
             other = type(self)([[Operator()]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
@@ -174,7 +189,7 @@ class OperatorString:
         return OperatorString(newops, newcoeff)
 
     def __sub__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, complex):
             other = type(self)([[Operator()]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
@@ -186,7 +201,7 @@ class OperatorString:
         return OperatorString(newops, newcoeff)
 
     def __mul__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, complex):
             other = type(self)([[Operator()]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
@@ -197,9 +212,13 @@ class OperatorString:
         return type(self).from_opdict(newdict)
 
     def __rmul__(self, other):  # multiply by a number
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, complex):
             other = type(self)([[Operator()]], coeff=[other])
         return other.__mul__(self)
+
+    def __truediv__(self, other):
+        assert isinstance(other, float) or isinstance(other, complex)
+        return 1 / other * self
 
     def __pow__(self, n):
         assert isinstance(n, int)
@@ -212,7 +231,7 @@ class OperatorString:
         return nops * nops ** (n - 1)
 
     def __radd__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, complex):
             other = type(self)([[Operator()]], coeff=[other])
         return self.__add__(other)
 
@@ -222,7 +241,7 @@ class OperatorString:
         if len(opdict1) != len(opdict2):
             return False
         for k, v in opdict1.items():
-            if opdict2.get(k, 0.0) != v:
+            if not np.allclose(opdict2.get(k, 0.0), v):
                 return False
         return True
 
@@ -248,7 +267,7 @@ class OperatorString:
                 nk.append(op)
             if len(nk) == 0:
                 nk = [OP(-1)]
-            if not zeroflag:
+            if not zeroflag and v != 0:
                 nk, coeff = self.standardize(nk)
                 newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
         self.opdict = newdict
@@ -427,7 +446,7 @@ class State:
         return type(self)(self.to_ops() - other.to_ops(), self.d)
 
     def __mul__(self, other):  # times a number
-        assert isinstance(other, float)
+        assert isinstance(other, float) or isinstance(other, complex)
         return type(self)(other * self.to_ops(), self.d)
 
     __rmul__ = __mul__
