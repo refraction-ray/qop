@@ -43,6 +43,8 @@ class Operator:
         lops = OperatorString.from_op(self)
         if isinstance(other, Operator):
             rops = OperatorString.from_op(other)
+        elif isinstance(other, float):
+            rops = OperatorString.from_op(Operator(), [1.0])
         else:
             rops = other
         return lops + rops
@@ -72,10 +74,7 @@ class Operator:
         return rops * lops
 
     def __radd__(self, other):
-        if other == 0:
-            return self
-        else:
-            return self.__add__(other)
+        return self.__add__(other)
 
     def __pow__(self, n):
         ops = OperatorString.from_op(self)
@@ -104,8 +103,8 @@ class OperatorString:
             self.opdict[tuple(oplist)] = self.opdict.get(tuple(oplist), 0) + coeff[i]
 
     @classmethod
-    def from_op(cls, op):
-        return cls([[op]])
+    def from_op(cls, op, coeff=None):
+        return cls([[op]], coeff=coeff)
 
     @classmethod
     def from_opdict(cls, opdict):
@@ -156,6 +155,8 @@ class OperatorString:
     def __add__(self, other):
         if isinstance(other, float):
             other = type(self)([[Operator()]], coeff=[other])
+        if not isinstance(other, OperatorString):
+            return NotImplemented  # raise NotImplementedError doesn't work!
         newdict = self.opdict
         for k, v in other.opdict.items():
             newdict[k] = newdict.get(k, 0.0) + v
@@ -166,6 +167,8 @@ class OperatorString:
     def __sub__(self, other):
         if isinstance(other, float):
             other = type(self)([[Operator()]], coeff=[other])
+        if not isinstance(other, OperatorString):
+            return NotImplemented  # raise NotImplementedError doesn't work!
         newdict = self.opdict
         for k, v in other.opdict.items():
             newdict[k] = newdict.get(k, 0.0) - v
@@ -213,6 +216,13 @@ class OperatorString:
             if opdict2.get(k, 0.0) != v:
                 return False
         return True
+
+    @property
+    def E(self):
+        for k, v in self.normal_order().opdict.items():
+            if k == (Operator(),):
+                return v
+        return 0.0
 
     def simplify(self):
         newdict = {}
@@ -313,6 +323,15 @@ class OperatorString:
             self.simplify()
         return self
 
+    @property
+    def D(self):
+        newdict = {}
+        for k, v in self.opdict.items():
+            nk = tuple([op.D for op in reversed(k)])
+            newdict[nk] = newdict.get(nk, 0.0) + np.conj(v)
+        self.opdict = newdict
+        return self
+
     @classmethod
     def exchange(cls, opa, opb, coeff=1):
         assert opa.type in [-1, 1]
@@ -332,6 +351,75 @@ class OperatorString:
             if opa.label == opb.label:
                 return cls([[Operator()], [opb, opa]], [coeff, -zeta * coeff])
             return cls([[opb, opa]], [-zeta * coeff])
+
+
+class State:
+    def __init__(self, ops, dagger=False):
+        """
+        state is ops|0> if dagger is False or <0|ops if dagger is true
+
+        :param ops:
+        :param dagger:
+        """
+        newdict = {}
+        for k, v in ops.normal_order().opdict.items():
+            if not dagger and list(k)[-1].d:
+                newdict[k] = v
+            if dagger and not list(k)[0].d:
+                newdict[k] = v
+        self.opdict = newdict
+        self.d = dagger
+
+    @classmethod
+    def from_opdict(cls, opdict, dagger=False):
+        return cls(OperatorString.from_opdict(opdict), dagger=dagger)
+
+    def normalize(self):
+        if not self.d:
+            innerp = (
+                OperatorString.from_opdict(self.opdict).D
+                * OperatorString.from_opdict(self.opdict)
+            ).E
+        else:
+            innerp = (
+                OperatorString.from_opdict(self.opdict)
+                * OperatorString.from_opdict(self.opdict).D
+            ).E
+        n = np.sqrt(innerp)
+        self.opdict = {k: v / n for k, v in self.opdict.items()}
+        return self
+
+    def to_ops(self):
+        return OperatorString.from_opdict(self.opdict)
+
+    @property
+    def D(self):
+        dagger = True if not self.d else False
+        newdict = {}
+        for k, v in self.opdict.items():
+            nk = tuple([op.D for op in reversed(k)])
+            newdict[nk] = newdict.get(nk, 0.0) + np.conj(v)
+        return type(self).from_opdict(newdict, dagger=dagger)
+
+    def __ror__(self, other):
+        assert self.d is False
+        if isinstance(other, Operator):
+            other = OperatorString.from_op(other)
+        assert isinstance(other, OperatorString) or isinstance(other, State)
+        if isinstance(other, OperatorString):
+            return type(self)(other * self.to_ops())
+        else:  # other is left vector
+            return (other.to_ops() * self.to_ops()).E
+
+    def __or__(self, other):
+        assert self.d is True
+        if isinstance(other, Operator):
+            other = OperatorString.from_op(other)
+        assert isinstance(other, OperatorString) or isinstance(other, State)
+        if isinstance(other, OperatorString):
+            return type(self)(self.to_ops() * other, dagger=True)
+        else:
+            return (self.to_ops() * other.to_ops()).E
 
 
 OP = Operator

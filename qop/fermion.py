@@ -16,6 +16,20 @@ class OperatorString(base.OperatorString):
     pass
 
 
+class State(base.State):
+    @classmethod
+    def from_str(cls, s, nomarlized=True):
+        ops = OP()
+        if len(s.split(",")) > 1:
+            s = s.split(",")
+        for i in s:
+            ops *= OP(int(i)).D
+        st = cls(ops, dagger=False)
+        if nomarlized:
+            st = st.normalize()
+        return st
+
+
 OP = Operator
 OPS = OperatorString
 
