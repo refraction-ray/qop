@@ -1,5 +1,5 @@
 import numpy as np
-from ..fermion import *
+from ..base import *
 from ..utils import *
 
 
@@ -9,9 +9,9 @@ def test_fermion_identities():
 
 
 def test_fermion_states():
-    assert State.from_str("011").D | OP(1).D * OP(1) | State.from_str("011") == 0
-    for f in [c0.D * c0, c0 * c0.D, c0 * c0.D * c1 * c1.D]:
-        assert np.allclose(f.E, V.D | f | State())
+    assert Sf("011").D | f(1).D * f(1) | Sf("011") == 0
+    for s in [c0.D * c0, c0 * c0.D, c0 * c0.D * c1 * c1.D]:
+        assert np.allclose(s.E, Vf.D | s | State(zeta=1))
 
 
 def test_hubbard_int_identity():

@@ -1,4 +1,6 @@
-from ..boson import *
+import math
+from ..base import *
+from ..utils import *
 
 
 def test_boson_identities():
@@ -31,3 +33,9 @@ def test_boson_states():
     s = State.from_str() + 2.0 * State.from_str("12")
     s = s.normalize()
     assert round(s.D | OP(1).D * OP(1) | s, 1) == 0.8
+
+
+def test_state_norm():
+    for i in range(7):
+        s = b0.D ** i | Vb
+        assert s.D | s == math.factorial(i)

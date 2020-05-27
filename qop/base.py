@@ -6,8 +6,8 @@ import numpy as np
 class Operator:
     _exists = {}
 
-    def __new__(cls, *args, dagger=False, name="OP", repr=None):
-        key = (tuple(args), dagger, name)
+    def __new__(cls, *args, dagger=False, name="OP", zeta=-1, repr=None):
+        key = (tuple(args), dagger, name, zeta)
         if key in cls._exists:
             return cls._exists[key]
         op = super().__new__(cls)
@@ -18,7 +18,7 @@ class Operator:
         op.d = dagger
         op.key = key
         op.name = name
-        op.type = 0
+        op.type = zeta
         op.repr = repr
         cls._exists[key] = op
         return op
@@ -27,7 +27,9 @@ class Operator:
     def D(self):
         dagger = False if self.d else True
 
-        return type(self)(*self.label, dagger=dagger, name=self.name, repr=self.repr)
+        return type(self)(
+            *self.label, dagger=dagger, name=self.name, zeta=self.type, repr=self.repr
+        )
 
     def __repr__(self):
         if self.repr is not None:
@@ -46,7 +48,7 @@ class Operator:
         if isinstance(other, Operator):
             rops = OperatorString.from_op(other)
         elif isinstance(other, float) or isinstance(other, complex):
-            rops = OperatorString.from_op(Operator(), [other])
+            rops = OperatorString.from_op(Operator(zeta=self.type), [other])
         else:
             rops = other
         return lops + rops
@@ -55,6 +57,8 @@ class Operator:
         lops = OperatorString.from_op(self)
         if isinstance(other, Operator):
             rops = OperatorString.from_op(other)
+        elif isinstance(other, float) or isinstance(other, complex):
+            rops = OperatorString.from_op(Operator(zeta=self.type), [other])
         else:
             rops = other
         return lops - rops
@@ -100,13 +104,27 @@ class Operator:
         return hash(self.key)
 
 
+def fop(*args, **kws):
+    return Operator(*args, **kws, zeta=1)
+
+
+OP = Operator
+op = OP
+bop = OP
+BOP = OP
+b = OP
+FOP = fop
+f = fop
+
+
 class OperatorString:
-    def __init__(self, ops=None, coeff=None):
+    def __init__(self, ops=None, coeff=None, zeta=1):
         self.opdict = {}
+        self.type = zeta
         if ops is None:
             if not coeff:
                 coeff = 0
-            self.opdict[tuple([Operator()])] = coeff
+            self.opdict[tuple([Operator(zeta=self.type)])] = coeff
         else:
             if not coeff:
                 coeff = [1.0] * len(ops)
@@ -178,7 +196,7 @@ class OperatorString:
 
     def __add__(self, other):
         if isinstance(other, float) or isinstance(other, complex):
-            other = type(self)([[Operator()]], coeff=[other])
+            other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
         newdict = self.opdict
@@ -190,7 +208,7 @@ class OperatorString:
 
     def __sub__(self, other):
         if isinstance(other, float) or isinstance(other, complex):
-            other = type(self)([[Operator()]], coeff=[other])
+            other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
         newdict = self.opdict
@@ -202,7 +220,7 @@ class OperatorString:
 
     def __mul__(self, other):
         if isinstance(other, float) or isinstance(other, complex):
-            other = type(self)([[Operator()]], coeff=[other])
+            other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
         newdict = {}
@@ -213,7 +231,7 @@ class OperatorString:
 
     def __rmul__(self, other):  # multiply by a number
         if isinstance(other, float) or isinstance(other, complex):
-            other = type(self)([[Operator()]], coeff=[other])
+            other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         return other.__mul__(self)
 
     def __truediv__(self, other):
@@ -232,7 +250,7 @@ class OperatorString:
 
     def __radd__(self, other):
         if isinstance(other, float) or isinstance(other, complex):
-            other = type(self)([[Operator()]], coeff=[other])
+            other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         return self.__add__(other)
 
     def __eq__(self, other):
@@ -248,7 +266,7 @@ class OperatorString:
     @property
     def E(self):
         for k, v in self.normal_order().opdict.items():
-            if k == (Operator(),):
+            if k == (Operator(zeta=self.type),):
                 return v
         return 0.0
 
@@ -270,6 +288,8 @@ class OperatorString:
             if not zeroflag and v != 0:
                 nk, coeff = self.standardize(nk)
                 newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
+        if len(newdict) == 0:
+            newdict[tuple([Operator(zeta=self.type)])] = 0.0
         self.opdict = newdict
         return self
 
@@ -331,13 +351,13 @@ class OperatorString:
                     i += 1
                 middle = self.exchange(oplist[i - 1], oplist[i], coeff=v).simplify()
                 if i - 1 < 1:
-                    left = OperatorString([[Operator()]])
+                    left = OperatorString([[Operator(zeta=self.type)]])
                 else:
                     left = OperatorString([oplist[: i - 1]])
                 if len(oplist) > i + 1:
                     right = OperatorString([oplist[i + 1 :]])
                 else:
-                    right = OperatorString([[Operator()]])
+                    right = OperatorString([[Operator(zeta=self.type)]])
                 newops = (left * middle * right).simplify()
                 del self.opdict[oplist]
                 for k, v in newops.opdict.items():
@@ -373,16 +393,16 @@ class OperatorString:
             return cls([[opb, opa]], [-zeta * coeff])
         if opa.d and not opb.d:  # a^\dagger b
             if opa.label == opb.label:
-                return cls([[Operator()], [opb, opa]], [zeta * coeff, -zeta * coeff])
+                return cls([[OP(zeta=zeta)], [opb, opa]], [zeta * coeff, -zeta * coeff])
             return cls([[opb, opa]], [-zeta * coeff])
         if not opa.d and opb.d:  # ab^\dagger
             if opa.label == opb.label:
-                return cls([[Operator()], [opb, opa]], [coeff, -zeta * coeff])
+                return cls([[OP(zeta=zeta)], [opb, opa]], [coeff, -zeta * coeff])
             return cls([[opb, opa]], [-zeta * coeff])
 
 
 class State:
-    def __init__(self, ops=None, dagger=False):
+    def __init__(self, ops=None, dagger=False, zeta=-1):
         """
         state is ops|0> if dagger is False or <0|ops if dagger is true
         It is worth noting the state from ops is not normalized by default,
@@ -393,18 +413,39 @@ class State:
         """
         newdict = {}
         if ops is None:
-            ops = OperatorString(coeff=1.0)
+            ops = OperatorString(coeff=1.0, zeta=zeta)
         for k, v in ops.normal_order().opdict.items():
             if not dagger and (list(k)[-1].d or list(k)[-1].label == (-1,)):
                 newdict[k] = v
             if dagger and (not list(k)[0].d or list(k)[0].label == (-1,)):
                 newdict[k] = v
+        self.type = ops.type
         self.opdict = newdict
         self.d = dagger
 
     @classmethod
     def from_opdict(cls, opdict, dagger=False):
         return cls(OperatorString.from_opdict(opdict), dagger=dagger)
+
+    @classmethod
+    def from_str(cls, s="", normalized=True, zeta=-1):
+        if not s:
+            return State()
+
+        ops = OP(zeta=zeta)
+        if len(s.split(";")) > 1:
+            s = s.split(";")
+        for i in s:
+            if len(i.split(",")) > 1:
+                label = i.split(",")
+                label = [int(j) for j in label]
+            else:
+                label = int(i)
+            ops *= OP(label, zeta=zeta).D
+        st = cls(ops, dagger=False, zeta=zeta)
+        if normalized:
+            st = st.normalize()
+        return st
 
     def normalize(self):
         if not self.d:
@@ -418,7 +459,10 @@ class State:
                 * OperatorString.from_opdict(self.opdict).D
             ).E
         n = np.sqrt(innerp)
-        self.opdict = {k: v / n for k, v in self.opdict.items()}
+        if n > 0:
+            self.opdict = {k: v / n for k, v in self.opdict.items()}
+        else:  # the state is zero itself
+            self.opdict = {tuple([OP(zeta=self.type)]): 0}
         return self
 
     def to_ops(self):
@@ -478,5 +522,32 @@ class State:
             return "<0| ( " + self.to_ops().__repr__() + " )"
 
 
-OP = Operator
 OPS = OperatorString
+
+
+def fState(s, normalized=True):
+    return State.from_str(s, normalized=normalized, zeta=1)
+
+
+Sf = fState
+
+
+def bState(s, normalized=True):
+    return State.from_str(s, normalized=normalized, zeta=-1)
+
+
+Sb = bState
+
+
+def commutator(ops1, ops2, zeta=-1):
+    zeta = float(zeta)
+    return ops1 * ops2 + zeta * ops2 * ops1
+
+
+def exp(ops, cutoff=2):
+    s = 1.0
+    last = 1.0
+    for i in range(1, cutoff + 1):
+        last = ops / float(i) * last
+        s += last
+    return s
