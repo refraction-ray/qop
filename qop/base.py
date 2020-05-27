@@ -32,6 +32,8 @@ class Operator:
     def __repr__(self):
         if self.repr is not None:
             return self.repr(self)
+        if self.label == (-1,):
+            return "I"
         return self.name + str(self.label) + (".D " if self.d else " ")
 
     __str__ = __repr__
@@ -95,12 +97,19 @@ class Operator:
 
 
 class OperatorString:
-    def __init__(self, ops, coeff=None):
+    def __init__(self, ops=None, coeff=None):
         self.opdict = {}
-        if not coeff:
-            coeff = [1.0] * len(ops)
-        for i, oplist in enumerate(ops):
-            self.opdict[tuple(oplist)] = self.opdict.get(tuple(oplist), 0) + coeff[i]
+        if ops is None:
+            if not coeff:
+                coeff = 0
+            self.opdict[tuple([Operator()])] = coeff
+        else:
+            if not coeff:
+                coeff = [1.0] * len(ops)
+            for i, oplist in enumerate(ops):
+                self.opdict[tuple(oplist)] = (
+                    self.opdict.get(tuple(oplist), 0) + coeff[i]
+                )
 
     @classmethod
     def from_op(cls, op, coeff=None):
@@ -354,18 +363,22 @@ class OperatorString:
 
 
 class State:
-    def __init__(self, ops, dagger=False):
+    def __init__(self, ops=None, dagger=False):
         """
         state is ops|0> if dagger is False or <0|ops if dagger is true
+        It is worth noting the state from ops is not normalized by default,
+        instead State.from_str normalize the state by default
 
         :param ops:
         :param dagger:
         """
         newdict = {}
+        if ops is None:
+            ops = OperatorString(coeff=1.0)
         for k, v in ops.normal_order().opdict.items():
-            if not dagger and list(k)[-1].d:
+            if not dagger and (list(k)[-1].d or list(k)[-1].label == (-1,)):
                 newdict[k] = v
-            if dagger and not list(k)[0].d:
+            if dagger and (not list(k)[0].d or list(k)[0].label == (-1,)):
                 newdict[k] = v
         self.opdict = newdict
         self.d = dagger
@@ -401,6 +414,24 @@ class State:
             newdict[nk] = newdict.get(nk, 0.0) + np.conj(v)
         return type(self).from_opdict(newdict, dagger=dagger)
 
+    def __add__(self, other):
+        if not isinstance(other, State):
+            return NotImplemented
+        assert self.d == other.d
+        return type(self)(self.to_ops() + other.to_ops(), self.d)
+
+    def __sub__(self, other):
+        if not isinstance(other, State):
+            return NotImplemented
+        assert self.d == other.d
+        return type(self)(self.to_ops() - other.to_ops(), self.d)
+
+    def __mul__(self, other):  # times a number
+        assert isinstance(other, float)
+        return type(self)(other * self.to_ops(), self.d)
+
+    __rmul__ = __mul__
+
     def __ror__(self, other):
         assert self.d is False
         if isinstance(other, Operator):
@@ -420,6 +451,12 @@ class State:
             return type(self)(self.to_ops() * other, dagger=True)
         else:
             return (self.to_ops() * other.to_ops()).E
+
+    def __repr__(self):
+        if not self.d:
+            return "( " + self.to_ops().__repr__() + " ) |0>"
+        else:
+            return "<0| ( " + self.to_ops().__repr__() + " )"
 
 
 OP = Operator

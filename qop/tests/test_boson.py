@@ -25,3 +25,9 @@ def test_boson_identities():
         round(State.from_str("011").D | OP(1).D * OP(1) | State.from_str("011"), 0)
         == 2.0
     )
+
+
+def test_boson_states():
+    s = State.from_str() + 2.0 * State.from_str("12")
+    s = s.normalize()
+    assert round(s.D | OP(1).D * OP(1) | s, 1) == 0.8

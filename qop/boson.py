@@ -18,7 +18,9 @@ class OperatorString(base.OperatorString):
 
 class State(base.State):
     @classmethod
-    def from_str(cls, s, nomarlized=True):
+    def from_str(cls, s="", nomarlized=True):
+        if not s:
+            return State()
         ops = OP()
         if len(s.split(",")) > 1:
             s = s.split(",")
@@ -36,3 +38,4 @@ OPS = OperatorString
 # some precached ops
 for i in range(10):
     setattr(thismodule, "b" + str(i), OP(i, name="b", repr=repr_short))
+V = State()
