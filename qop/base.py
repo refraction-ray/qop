@@ -158,6 +158,9 @@ class OperatorString:
 
         return type(self).from_opdict(newdict)
 
+    def __rsub__(self, other):
+        return -1.0 * self + other
+
     def __mul__(self, other):
         if is_num(other):
             other = type(self)([[self.OP()]], coeff=[other])
