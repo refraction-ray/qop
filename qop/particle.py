@@ -86,6 +86,8 @@ class ParticleOperatorString(base.OperatorString):
 
     def __eq__(self, other):
         opdict1 = self.normal_order().opdict
+        if base.is_num(other):
+            other *= self.OP()
         opdict2 = other.normal_order().opdict
         if len(opdict1) != len(opdict2):
             return False
@@ -114,6 +116,7 @@ class ParticleOperatorString(base.OperatorString):
             if v != 0:
                 nk, coeff = self.standardize(nk)
                 newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
+        newdict = {k: v for k, v in newdict.items() if v != 0}
         if len(newdict) == 0:
             newdict[tuple([self.OP()])] = 0.0
         self.opdict = newdict

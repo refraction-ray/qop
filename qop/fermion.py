@@ -40,6 +40,7 @@ class FermionOperatorString(ParticleOperatorString):
             if not zeroflag and v != 0:
                 nk, coeff = self.standardize(nk)
                 newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
+        newdict = {k: v for k, v in newdict.items() if v != 0}
         if len(newdict) == 0:
             newdict[tuple([self.OP()])] = 0.0
         self.opdict = newdict

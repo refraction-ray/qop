@@ -77,6 +77,10 @@ class Operator:
         ops = self.strfy()
         return ops ** n
 
+    def __neg__(self):
+        ops = self.strfy()
+        return -1.0 * ops
+
     def __eq__(self, other):  # break hashable
         assert isinstance(other, Operator)
         return self.key == other.key
@@ -196,8 +200,13 @@ class OperatorString:
             other = type(self)([[self.OP()]], coeff=[other])
         return self.__add__(other)
 
+    def __neg__(self):
+        return -1.0 * self
+
     def __eq__(self, other):
         opdict1 = self.opdict
+        if is_num(other):
+            other = other * self.OP()
         opdict2 = other.opdict
         if len(opdict1) != len(opdict2):
             return False

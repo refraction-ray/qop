@@ -41,8 +41,20 @@ class HardcoreBosonOperatorString(ParticleOperatorString):
         self.opdict = newdict
         return self
 
-    def exchange(self, opa, opb, coeff=1, zeta=1):
-        return super().exchange(opa, opb, coeff=coeff, zeta=zeta)
+    def exchange(self, opa, opb, coeff=1):
+        # looks like fermion on the same label and looks like boson on the different label
+        if (opa.d and opb.d) or (not opa.d and not opb.d):
+            if opa.label[:-1] == opb.label[:-1]:
+                return type(self)([[opb, opa]], [0.0])
+            return type(self)([[opb, opa]], [coeff])
+        if opa.d and not opb.d:  # a^\dagger b
+            if opa.label[:-1] == opb.label[:-1]:
+                return type(self)([[self.OP()], [opb, opa]], [coeff, -coeff])
+            return type(self)([[opb, opa]], [coeff])
+        if not opa.d and opb.d:  # ab^\dagger
+            if opa.label[:-1] == opb.label[:-1]:
+                return type(self)([[self.OP()], [opb, opa]], [coeff, -coeff])
+            return type(self)([[opb, opa]], [coeff])
 
 
 for i in range(10):
