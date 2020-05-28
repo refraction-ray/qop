@@ -2,6 +2,7 @@ import numpy as np
 from .base import assert_num, Operator, OperatorString
 from .boson import BosonOperator, BosonOperatorString
 from .fermion import FermionOperator, FermionOperatorString
+from .spin import SpinOperator, SpinOperatorString
 from .hardcoreboson import HardcoreBosonOperator, HardcoreBosonOperatorString
 
 
@@ -184,3 +185,33 @@ class HardcoreBosonState(State):
 
 def Shb(s="", normalized=True):
     return HardcoreBosonState.from_str(s, normalized)
+
+
+class SpinState(HardcoreBosonState):
+    def __ror__(self, other):
+        assert self.d is False
+        if isinstance(other, Operator):
+            other = SpinOperatorString.from_op(other)
+        assert isinstance(other, OperatorString) or isinstance(other, State)
+        if isinstance(other, SpinOperatorString):
+            return type(self)(other.to_hb() * self.to_ops())
+        elif isinstance(other, HardcoreBosonOperatorString):
+            return type(self)(other * self.to_ops())
+        else:  # other is left vector
+            return (other.to_ops() * self.to_ops()).E
+
+    def __or__(self, other):
+        assert self.d is True
+        if isinstance(other, Operator):
+            other = SpinOperatorString.from_op(other)
+        assert isinstance(other, OperatorString) or isinstance(other, State)
+        if isinstance(other, SpinOperatorString):
+            return type(self)(self.to_ops() * other.to_hb(), dagger=True)
+        elif isinstance(other, HardcoreBosonOperatorString):
+            return type(self)(self.to_ops() * other, dagger=True)
+        else:
+            return (self.to_ops() * other.to_ops()).E
+
+
+def Ss(s="", normalized=True):
+    return SpinState.from_str(s, normalized)

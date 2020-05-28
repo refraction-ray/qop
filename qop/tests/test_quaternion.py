@@ -3,7 +3,7 @@ from ..quaternion import *
 
 def test_complex():
     assert ((2 + qi) * (2 - qi)) == 5
-    assert (1+qi)/(1-qi) == qi
+    assert (1 + qi) / (1 - qi) == qi
 
 
 def test_quaternion_identities():

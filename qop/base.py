@@ -38,7 +38,7 @@ class Operator:
     def __repr__(self):
         if self.repr is not None:
             return self.repr(self)
-        if self.label == (-1,):
+        if self.label[0] == -1:
             return "I"
         return self.name + str(self.label)
 
@@ -87,7 +87,7 @@ class Operator:
     def __eq__(self, other):  # break hashable
         if isinstance(other, Operator):
             return self.key == other.key
-        else: # other is ops
+        else:  # other is ops
             return other.__eq__(self)
 
     def __lt__(self, other):
@@ -212,11 +212,13 @@ class OperatorString:
         return -1.0 * self
 
     def __eq__(self, other):
+        self.simplify()
         opdict1 = self.opdict
         if is_num(other):
             other = other * self.OP()
         if isinstance(other, Operator):
             other = self.from_op(other)
+        other.simplify()
         opdict2 = other.opdict
         if len(opdict1) != len(opdict2):
             return False

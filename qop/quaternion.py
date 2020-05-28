@@ -63,10 +63,6 @@ result_table = {
 
 
 class QuaternionOperatorString(base.OperatorString):
-    def __eq__(self, other):
-        self.simplify()
-        return super().__eq__(other)
-
     @property
     def D(self):
         newdict = {}
