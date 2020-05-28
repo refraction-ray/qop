@@ -2,6 +2,14 @@ from functools import total_ordering
 import numpy as np
 
 
+def assert_num(c):
+    if isinstance(c, int):
+        return float(c)
+    if isinstance(c, float) or isinstance(c, complex):
+        return c
+    raise ValueError("Only float/complex number is supported in this operation.")
+
+
 @total_ordering
 class Operator:
     _exists = {}
@@ -27,7 +35,7 @@ class Operator:
     def D(self):
         dagger = False if self.d else True
 
-        return type(self)(
+        return Operator(
             *self.label, dagger=dagger, name=self.name, zeta=self.type, repr=self.repr
         )
 
@@ -47,7 +55,11 @@ class Operator:
         lops = OperatorString.from_op(self)
         if isinstance(other, Operator):
             rops = OperatorString.from_op(other)
-        elif isinstance(other, float) or isinstance(other, complex):
+        elif (
+            isinstance(other, int)
+            or isinstance(other, float)
+            or isinstance(other, complex)
+        ):
             rops = OperatorString.from_op(Operator(zeta=self.type), [other])
         else:
             rops = other
@@ -57,7 +69,11 @@ class Operator:
         lops = OperatorString.from_op(self)
         if isinstance(other, Operator):
             rops = OperatorString.from_op(other)
-        elif isinstance(other, float) or isinstance(other, complex):
+        elif (
+            isinstance(other, int)
+            or isinstance(other, float)
+            or isinstance(other, complex)
+        ):
             rops = OperatorString.from_op(Operator(zeta=self.type), [other])
         else:
             rops = other
@@ -195,7 +211,11 @@ class OperatorString:
     __str__ = __repr__
 
     def __add__(self, other):
-        if isinstance(other, float) or isinstance(other, complex):
+        if (
+            isinstance(other, int)
+            or isinstance(other, float)
+            or isinstance(other, complex)
+        ):
             other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
@@ -207,7 +227,11 @@ class OperatorString:
         return OperatorString(newops, newcoeff)
 
     def __sub__(self, other):
-        if isinstance(other, float) or isinstance(other, complex):
+        if (
+            isinstance(other, int)
+            or isinstance(other, float)
+            or isinstance(other, complex)
+        ):
             other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
@@ -219,7 +243,11 @@ class OperatorString:
         return OperatorString(newops, newcoeff)
 
     def __mul__(self, other):
-        if isinstance(other, float) or isinstance(other, complex):
+        if (
+            isinstance(other, int)
+            or isinstance(other, float)
+            or isinstance(other, complex)
+        ):
             other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         if not isinstance(other, OperatorString):
             return NotImplemented  # raise NotImplementedError doesn't work!
@@ -230,12 +258,16 @@ class OperatorString:
         return type(self).from_opdict(newdict)
 
     def __rmul__(self, other):  # multiply by a number
-        if isinstance(other, float) or isinstance(other, complex):
+        if (
+            isinstance(other, int)
+            or isinstance(other, float)
+            or isinstance(other, complex)
+        ):
             other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         return other.__mul__(self)
 
     def __truediv__(self, other):
-        assert isinstance(other, float) or isinstance(other, complex)
+        other = assert_num(other)
         return 1 / other * self
 
     def __pow__(self, n):
@@ -249,7 +281,11 @@ class OperatorString:
         return nops * nops ** (n - 1)
 
     def __radd__(self, other):
-        if isinstance(other, float) or isinstance(other, complex):
+        if (
+            isinstance(other, int)
+            or isinstance(other, float)
+            or isinstance(other, complex)
+        ):
             other = type(self)([[Operator(zeta=self.type)]], coeff=[other])
         return self.__add__(other)
 
@@ -434,20 +470,28 @@ class State:
 
         ops = OP(zeta=zeta)
         if len(s.split(";")) > 1:
-            s = s.split(";")
+            s = [t for t in s.split(";") if t.strip()]
         for i in s:
             if len(i.split(",")) > 1:
                 label = i.split(",")
                 label = [int(j) for j in label]
             else:
-                label = int(i)
-            ops *= OP(label, zeta=zeta).D
+                label = [int(i)]
+            ops *= OP(*label, zeta=zeta).D
         st = cls(ops, dagger=False, zeta=zeta)
         if normalized:
             st = st.normalize()
         return st
 
     def normalize(self):
+        n = self.norm()
+        if n > 0:
+            self.opdict = {k: v / n for k, v in self.opdict.items()}
+        else:  # the state is zero itself
+            self.opdict = {tuple([OP(zeta=self.type)]): 0}
+        return self
+
+    def norm(self):
         if not self.d:
             innerp = (
                 OperatorString.from_opdict(self.opdict).D
@@ -459,11 +503,7 @@ class State:
                 * OperatorString.from_opdict(self.opdict).D
             ).E
         n = np.sqrt(innerp)
-        if n > 0:
-            self.opdict = {k: v / n for k, v in self.opdict.items()}
-        else:  # the state is zero itself
-            self.opdict = {tuple([OP(zeta=self.type)]): 0}
-        return self
+        return n
 
     def to_ops(self):
         return OperatorString.from_opdict(self.opdict)
@@ -490,10 +530,14 @@ class State:
         return type(self)(self.to_ops() - other.to_ops(), self.d)
 
     def __mul__(self, other):  # times a number
-        assert isinstance(other, float) or isinstance(other, complex)
+        other = assert_num(other)
         return type(self)(other * self.to_ops(), self.d)
 
     __rmul__ = __mul__
+
+    def __truediv__(self, other):
+        other = assert_num(other)
+        return 1 / other * self
 
     def __ror__(self, other):
         assert self.d is False
@@ -525,14 +569,14 @@ class State:
 OPS = OperatorString
 
 
-def fState(s, normalized=True):
+def fState(s="", normalized=True):
     return State.from_str(s, normalized=normalized, zeta=1)
 
 
 Sf = fState
 
 
-def bState(s, normalized=True):
+def bState(s="", normalized=True):
     return State.from_str(s, normalized=normalized, zeta=-1)
 
 

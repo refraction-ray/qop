@@ -11,7 +11,10 @@ def test_fermion_identities():
 def test_fermion_states():
     assert Sf("011").D | f(1).D * f(1) | Sf("011") == 0
     for s in [c0.D * c0, c0 * c0.D, c0 * c0.D * c1 * c1.D]:
-        assert np.allclose(s.E, Vf.D | s | State(zeta=1))
+        assert np.allclose(s.E, Sf().D | s | State(zeta=1))
+    assert Sf("1").D | c1.D * c1 | c1.D | Sf() == 1.0
+    for s in ["", "0", "1", "01", "135"]:
+        assert Sf(s).D | Sf(s) == 1
 
 
 def test_hubbard_int_identity():
@@ -30,3 +33,9 @@ def test_hubbard_int_identity():
         s = State.from_str(w)
         s = s.normalize()
         print(s.D | (c1.D * c1 - 1 / 2) * (c0.D * c0 - 1 / 2) | s)
+
+
+def test_hamiltonian():
+    n = 12
+    h = sum([f(i).D * f((i + 1) % n) + f((i + 1) % n).D * f(i) for i in range(n)])
+    assert Sf("0;11;").D | h | Sf("1;11") == 1
