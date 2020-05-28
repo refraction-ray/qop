@@ -85,16 +85,8 @@ class ParticleOperatorString(base.OperatorString):
         return True
 
     def __eq__(self, other):
-        opdict1 = self.normal_order().opdict
-        if base.is_num(other):
-            other *= self.OP()
-        opdict2 = other.normal_order().opdict
-        if len(opdict1) != len(opdict2):
-            return False
-        for k, v in opdict1.items():
-            if not np.allclose(opdict2.get(k, 0.0), v):
-                return False
-        return True
+        self.normal_order()
+        return super().__eq__(other)
 
     @property
     def E(self):

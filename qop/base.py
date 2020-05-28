@@ -73,6 +73,9 @@ class Operator:
     def __radd__(self, other):
         return self.__add__(other)
 
+    def __rsub__(self, other):
+        return -1 * self.__sub__(other)
+
     def __pow__(self, n):
         ops = self.strfy()
         return ops ** n
@@ -82,8 +85,10 @@ class Operator:
         return -1.0 * ops
 
     def __eq__(self, other):  # break hashable
-        assert isinstance(other, Operator)
-        return self.key == other.key
+        if isinstance(other, Operator):
+            return self.key == other.key
+        else: # other is ops
+            return other.__eq__(self)
 
     def __lt__(self, other):
         return self.label < other.label
@@ -145,7 +150,7 @@ class OperatorString:
             other = type(self)([[self.OP()]], coeff=[other])
         if isinstance(other, Operator):
             other = type(self).from_op(other)
-        newdict = self.opdict
+        newdict = self.opdict.copy()
         for k, v in other.opdict.items():
             newdict[k] = newdict.get(k, 0.0) + v
 
@@ -156,7 +161,7 @@ class OperatorString:
             other = type(self)([[self.OP()]], coeff=[other])
         if isinstance(other, Operator):
             other = type(self).from_op(other)
-        newdict = self.opdict
+        newdict = self.opdict.copy()
         for k, v in other.opdict.items():
             newdict[k] = newdict.get(k, 0.0) - v
 
@@ -182,8 +187,11 @@ class OperatorString:
         return other.__mul__(self)
 
     def __truediv__(self, other):
-        other = assert_num(other)
-        return 1 / other * self
+        try:
+            other = assert_num(other)
+            return 1 / other * self
+        except ValueError:
+            return other.__rtruediv__(self)
 
     def __pow__(self, n):
         assert isinstance(n, int)
@@ -207,6 +215,8 @@ class OperatorString:
         opdict1 = self.opdict
         if is_num(other):
             other = other * self.OP()
+        if isinstance(other, Operator):
+            other = self.from_op(other)
         opdict2 = other.opdict
         if len(opdict1) != len(opdict2):
             return False

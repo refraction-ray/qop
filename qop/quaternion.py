@@ -20,6 +20,19 @@ class QuaternionOperator(base.Operator):
     def strfy(self):
         return QuaternionOperatorString.from_op(self)
 
+    def __rtruediv__(self, other):
+        ops = self.strfy()
+        return other / ops
+
+    @property
+    def D(self):
+        ops = self.strfy()
+        return ops.D
+
+    def norm(self):
+        ops = self.strfy()
+        return ops.norm()
+
 
 qi, qj, qk = [QuaternionOperator(i) for i in [1, 2, 3]]
 
@@ -51,16 +64,28 @@ result_table = {
 
 class QuaternionOperatorString(base.OperatorString):
     def __eq__(self, other):
-        if base.is_num(other):
-            other = other * self.OP()
-        opdict1 = self.simplify().opdict
-        opdict2 = other.simplify().opdict
-        if len(opdict1) != len(opdict2):
-            return False
-        for k, v in opdict1.items():
-            if not np.allclose(opdict2.get(k, 0.0), v):
-                return False
-        return True
+        self.simplify()
+        return super().__eq__(other)
+
+    @property
+    def D(self):
+        newdict = {}
+        for k, v in self.opdict.items():
+            sign = 1
+            for op in list(k):
+                if op.label[0] > 0:
+                    sign *= -1
+            newdict[k] = sign * v
+        return self.from_opdict(newdict)
+
+    def norm(self):
+        self.simplify()
+        return np.sqrt(sum([v ** 2 for k, v in self.opdict.items()]))
+
+    def __rtruediv__(self, other):
+        # other/q = other * q*/|q|^2
+        re = self.D / self.norm() ** 2
+        return other * re
 
     def simplify(self):
         newdict = {}
