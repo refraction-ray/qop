@@ -28,7 +28,15 @@ def generate_basis(n, s=2):
         yield last
 
 
-for i in range(10):
-    setattr(thismodule, "c" + str(i), base.f(i, name="c", repr=repr_short))
-for i in range(10):
-    setattr(thismodule, "b" + str(i), base.b(i, name="b", repr=repr_short))
+def commutator(ops1, ops2, zeta=-1):
+    zeta = float(zeta)
+    return ops1 * ops2 + zeta * ops2 * ops1
+
+
+def exp(ops, cutoff=2):
+    s = 1.0
+    last = 1.0
+    for i in range(1, cutoff + 1):
+        last = ops / float(i) * last
+        s += last
+    return s
