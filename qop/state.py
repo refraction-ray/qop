@@ -2,6 +2,7 @@ import numpy as np
 from .base import assert_num, Operator, OperatorString
 from .boson import BosonOperator, BosonOperatorString
 from .fermion import FermionOperator, FermionOperatorString
+from .hardcoreboson import HardcoreBosonOperator, HardcoreBosonOperatorString
 
 
 class State:
@@ -169,3 +170,17 @@ class BosonState(State):
 
 def Sb(s="", normalized=True):
     return BosonState.from_str(s, normalized)
+
+
+class HardcoreBosonState(State):
+    @classmethod
+    def get_OP(cls):
+        return HardcoreBosonOperator
+
+    @classmethod
+    def get_OS(cls):
+        return HardcoreBosonOperatorString
+
+
+def Shb(s="", normalized=True):
+    return HardcoreBosonState.from_str(s, normalized)
