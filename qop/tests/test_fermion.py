@@ -8,6 +8,7 @@ def test_fermion_identities():
     assert (c0.D * c0) ** 3 == c0.D * c0
     assert (2.0 * c1 + c0.D * c0) ** 2 == 4.0 * c1 * c0.D * c0 + c0.D * c0
     assert c0.D ** 2 == 0
+    assert np.conj(c0.D * c1) == c1.D * c0
 
 
 def test_fermion_states():
@@ -24,11 +25,12 @@ def test_hubbard_int_identity():
         2
         / 3
         * (
-            FOS.from_matrix(x_matrix / 2.0, [c0, c1]) ** 2
-            + FOS.from_matrix(y_matrix / 2.0, [c0, c1]) ** 2
-            + FOS.from_matrix(z_matrix / 2.0, [c0, c1]) ** 2
+            (np.array([c0.D, c1.D]) @ x_matrix / 2 @ np.array([c0, c1])) ** 2
+            + (np.array([c0.D, c1.D]) @ y_matrix / 2 @ np.array([c0, c1])) ** 2
+            + (np.array([c0.D, c1.D]) @ z_matrix / 2 @ np.array([c0, c1])) ** 2
         )
-        == 1 / 2 * FOS.from_matrix(i_matrix, [c0, c1]) - c0.D * c0 * c1.D * c1
+        == 1 / 2 * np.array([c0.D, c1.D]) @ i_matrix @ np.array([c0, c1])
+        - c0.D * c0 * c1.D * c1
     )
 
     for w in ["", "0", "1", "01"]:

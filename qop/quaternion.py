@@ -24,10 +24,13 @@ class QuaternionOperator(base.Operator):
         ops = self.strfy()
         return other / ops
 
-    @property
-    def D(self):
+    def conjugate(self):
         ops = self.strfy()
         return ops.D
+
+    @property
+    def D(self):
+        return self.conjugate()
 
     def norm(self):
         ops = self.strfy()
@@ -63,8 +66,7 @@ result_table = {
 
 
 class QuaternionOperatorString(base.OperatorString):
-    @property
-    def D(self):
+    def conjugate(self):
         newdict = {}
         for k, v in self.opdict.items():
             sign = 1
@@ -73,6 +75,10 @@ class QuaternionOperatorString(base.OperatorString):
                     sign *= -1
             newdict[k] = sign * v
         return self.from_opdict(newdict)
+
+    @property
+    def D(self):
+        return self.conjugate()
 
     def norm(self):
         self.simplify()

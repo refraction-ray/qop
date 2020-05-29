@@ -48,7 +48,7 @@ class Operator:
         return self
 
     def strfy(self):
-        return OperatorString.from_op
+        return OperatorString.from_op(self)
 
     def __add__(self, other):
         lops = self.strfy()
@@ -59,6 +59,8 @@ class Operator:
         return lops - other
 
     def __mul__(self, other):
+        if isinstance(other, np.ndarray):
+            return other.__rmul__(self)
         lops = self.strfy()
         return lops * other
 
@@ -80,12 +82,18 @@ class Operator:
         ops = self.strfy()
         return ops ** n
 
+    def __pos__(self):
+        ops = self.strfy()
+        return ops
+
     def __neg__(self):
         ops = self.strfy()
         return -1.0 * ops
 
     def __eq__(self, other):  # break hashable
         if isinstance(other, Operator):
+            if self.label[0] == -1 and other.label[0] == -1:
+                return True  # 1.D = 1
             return self.key == other.key
         else:  # other is ops
             return other.__eq__(self)
@@ -124,15 +132,6 @@ class OperatorString:
             _instance.OP = type(k[0])
             break
         return _instance
-
-    @classmethod
-    def from_matrix(cls, matrix, cv, rv):
-        assert len(cv) == len(rv) == matrix.shape[0] == matrix.shape[1]
-        s = 0.0
-        for i in range(len(cv)):
-            for j in range(len(cv)):
-                s += rv[i] * matrix[i, j] * cv[j]
-        return s
 
     def __repr__(self):
         s = ""
@@ -208,6 +207,9 @@ class OperatorString:
             other = type(self)([[self.OP()]], coeff=[other])
         return self.__add__(other)
 
+    def __pos__(self):
+        return self
+
     def __neg__(self):
         return -1.0 * self
 
@@ -252,3 +254,8 @@ class OperatorString:
         if len(nk) == 0:
             nk = [type(opl[0])()]
         return nk, 1
+
+
+@np.vectorize
+def simplify(ops):
+    return ops.simplify()

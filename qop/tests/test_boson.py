@@ -34,6 +34,7 @@ def test_boson_states():
     s = s.normalize()
     assert round(s.D | b(1).D * b(1) | s, 1) == 0.8
     assert Sb("0,1;1,2").D | b(1, 2).D * b(1, 2) | Sb("0,1;1,2")
+    assert (Sb("00") + Sb("11")).D | Sb("00") - Sb("11") == 0
 
 
 def test_state_norm():

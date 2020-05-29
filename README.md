@@ -48,6 +48,14 @@ from qop.quaternion import *
 assert (1-qi)/(1-qj) == 0.5*(1-qi+qj-qk)
 ```
 
+* Symbols
+
+```python
+from qop.symbol import *
+a = Symbol("a")
+assert np.conj((2+a)).evaluate({"a":1j}) == 2-1j
+```
+
 * Quantum states
 
 ```python

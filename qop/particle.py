@@ -22,12 +22,15 @@ class ParticleOperator(base.Operator):  # default as boson like
         cls._exists[key] = op
         return op
 
-    @property
-    def D(self):
+    def conjugate(self):
         dagger = False if self.d else True
         return type(self)(
             *self.label[:-1], dagger=dagger, name=self.name, repr_=self.repr
         )
+
+    @property
+    def D(self):
+        return self.conjugate()
 
     def strfy(self):
         return ParticleOperatorString.from_op(self)
@@ -50,12 +53,6 @@ class ParticleOperator(base.Operator):  # default as boson like
 
 
 class ParticleOperatorString(base.OperatorString):
-    @classmethod
-    def from_matrix(cls, matrix, cv, rv=None):
-        if not rv:
-            rv = [op.D for op in cv]
-        return super().from_matrix(matrix, cv, rv)
-
     def is_all_normal_ordered(self):
         for oplist in self.opdict:
             d = True
@@ -174,14 +171,17 @@ class ParticleOperatorString(base.OperatorString):
             self.simplify()
         return self
 
-    @property
-    def D(self):
+    def conjugate(self):
         newdict = {}
         for k, v in self.opdict.items():
             nk = tuple([op.D for op in reversed(k)])
             newdict[nk] = newdict.get(nk, 0.0) + np.conj(v)
         self.opdict = newdict
         return self
+
+    @property
+    def D(self):
+        return self.conjugate()
 
     def exchange(self, opa, opb, coeff=1, zeta=-1):
         # 1 for fermion and -1 for boson
