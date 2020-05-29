@@ -53,7 +53,7 @@ assert (1-qi)/(1-qj) == 0.5*(1-qi+qj-qk)
 ```python
 from qop.symbol import *
 a = Symbol("a")
-assert np.conj((2+a)).evaluate({"a":1j}) == 2-1j
+assert np.conj((2+a)).evaluate({"a": 1j}) == 2-1j
 ```
 
 * Quantum states
@@ -64,5 +64,11 @@ from qop.state import *
 assert Sf("1").D | c1.D * c1 | c1.D | Sf() == 1.0
 ```
 
+And mix all, we have
+
+```python
+U = Symbol("U")
+assert Sf("12").D | U * (np.array([c1.D, c2.D]) @ np.array([c1, c2])) ** 2 | Sf("12") == 4 * U2
+```
 
 See more examples in tests.

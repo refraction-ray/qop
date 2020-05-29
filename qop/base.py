@@ -59,14 +59,12 @@ class Operator:
         return lops - other
 
     def __mul__(self, other):
-        if isinstance(other, np.ndarray):
-            return other.__rmul__(self)
         lops = self.strfy()
         return lops * other
 
     def __rmul__(self, other):
         lops = self.strfy()
-        return other * lops
+        return lops.__rmul__(other)
 
     def __truediv__(self, other):
         ops = self.strfy()
@@ -148,23 +146,31 @@ class OperatorString:
         if is_num(other):
             other = type(self)([[self.OP()]], coeff=[other])
         if isinstance(other, Operator):
-            other = type(self).from_op(other)
+            other = other.strfy()
+        if isinstance(other, np.ndarray):
+            return other.__add__(self)
         newdict = self.opdict.copy()
         for k, v in other.opdict.items():
             newdict[k] = newdict.get(k, 0.0) + v
-
-        return type(self).from_opdict(newdict)
+        if type(self) == type(other):
+            return type(self).from_opdict(newdict)
+        else:
+            return MultipleOperatorString.from_opdict(newdict)
 
     def __sub__(self, other):
         if is_num(other):
             other = type(self)([[self.OP()]], coeff=[other])
         if isinstance(other, Operator):
-            other = type(self).from_op(other)
+            other = other.strfy()
+        if isinstance(other, np.ndarray):
+            return (-other).__add__(self)
         newdict = self.opdict.copy()
         for k, v in other.opdict.items():
             newdict[k] = newdict.get(k, 0.0) - v
-
-        return type(self).from_opdict(newdict)
+        if type(self) == type(other):
+            return type(self).from_opdict(newdict)
+        else:
+            return MultipleOperatorString.from_opdict(newdict)
 
     def __rsub__(self, other):
         return -1.0 * self + other
@@ -172,13 +178,18 @@ class OperatorString:
     def __mul__(self, other):
         if is_num(other):
             other = type(self)([[self.OP()]], coeff=[other])
-        if isinstance(other, Operator):
-            other = type(self).from_op(other)
+        if isinstance(other, Operator):  # sometimes fail working
+            other = other.strfy()
+        if isinstance(other, np.ndarray):
+            return other.__rmul__(self)
         newdict = {}
         for k1, v1 in self.opdict.items():
             for k2, v2 in other.opdict.items():
                 newdict[tuple(list(k1) + list(k2))] = v1 * v2
-        return type(self).from_opdict(newdict)
+        if type(self) == type(other):
+            return type(self).from_opdict(newdict)
+        else:
+            return MultipleOperatorString.from_opdict(newdict)
 
     def __rmul__(self, other):  # multiply by a number
         if is_num(other):
@@ -203,8 +214,6 @@ class OperatorString:
         return nops * nops ** (n - 1)
 
     def __radd__(self, other):
-        if is_num(other):
-            other = type(self)([[self.OP()]], coeff=[other])
         return self.__add__(other)
 
     def __pos__(self):
@@ -219,14 +228,25 @@ class OperatorString:
         if is_num(other):
             other = other * self.OP()
         if isinstance(other, Operator):
-            other = self.from_op(other)
+            other = other.strfy()
+        # if type(self) != type(other): # MOS can be equal to some pure OS!
+        #     return False
         other.simplify()
         opdict2 = other.opdict
         if len(opdict1) != len(opdict2):
             return False
+        const = 0
+        ## we utilize a relaxed equal relation, all I for different types of operators are the same
+        for k2, v2 in opdict2.items():
+            if len(list(k2)) == 1 and k2[0].label[0] == -1:
+                const = v2
+                break
         for k, v in opdict1.items():
             if not np.allclose(opdict2.get(k, 0.0), v):
-                return False
+                if len(list(k)) == 1 and k[0].label[0] == -1 and v == const:
+                    continue
+                else:
+                    return False
         return True
 
     def simplify(self):
@@ -254,6 +274,120 @@ class OperatorString:
         if len(nk) == 0:
             nk = [type(opl[0])()]
         return nk, 1
+
+
+class MultipleOperatorString(OperatorString):
+    def __eq__(self, other):
+        self.normal_order()
+        if getattr(other, "normal_order", False):
+            other.normal_order()
+        else:
+            other.simplify()
+        return super().__eq__(other)
+
+    _category_order = [
+        "GrassmannOperator",
+        "QuaternionOperator",
+        "SymbolOperator",
+        "BosonOperator",
+        "HardcoreBosonOperator",
+        "FermionOperator",
+        "SpinOperator",
+    ]
+
+    @classmethod
+    def _get_category_dict(cls, opl):
+        category_dict = {}
+        for op in list(opl):
+            category_dict[type(op).__name__] = category_dict.get(type(op).__name__, [])
+            category_dict[type(op).__name__].append(op)
+        return category_dict
+
+    def standardize(self, opl):
+        category_dict = self._get_category_dict(opl)
+        nk = []
+        sign = 1
+        for c in self._category_order:
+            if category_dict.get(c, False):
+                nopl, coeff = category_dict[c][0].strfy().standardize(category_dict[c])
+                if coeff != 0 and nopl[0].label[0] != -1:  # get rid of excess I
+                    nk.extend(nopl)
+                    sign *= coeff
+                elif coeff == 0:
+                    return None, 0
+        if len(nk) == 0:
+            nk = [self.OP()]
+        return nk, sign
+
+    def evaluate(self, param_dict):
+        newdict = {}
+        for k, v in self.opdict.items():
+            nk, coeff = self.evaluate_basis(list(k), param_dict)
+            if coeff != 0:
+                newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
+        newdict = {k: v for k, v in newdict.items() if v != 0}
+        if len(newdict) == 0:
+            newdict[tuple([self.OP()])] = 0.0
+        return type(self).from_opdict(newdict).simplify()
+
+    def evaluate_basis(self, opl, param_dict):
+        category_dict = self._get_category_dict(opl)
+        if "SymbolOperator" not in category_dict:
+            return opl, 1
+        nk, coeff = (
+            category_dict["SymbolOperator"][0]
+            .strfy()
+            .evaluate_basis(category_dict["SymbolOperator"], param_dict)
+        )
+        for c in self._category_order:
+            if category_dict.get(c, False) and not c.startswith("Symbol"):
+                nk.extend(category_dict[c])
+        return nk, coeff
+
+    def normal_order(self):
+        self.simplify()
+        h = []
+        for i, k in enumerate(self.opdict):
+            h.append(type(list(k)[0])())
+            h[i] *= self.opdict[k]
+            category_dict = self._get_category_dict(k)
+            for c in self._category_order:
+                if category_dict.get(c, False) and c in [
+                    "BosonOperator",
+                    "HardcoreBosonOperator",
+                    "FermionOperator",
+                ]:
+                    h[i] *= type(category_dict[c][0].strfy())(
+                        [category_dict[c]]
+                    ).normal_order()
+                elif category_dict.get(c, False):
+                    h[i] *= type(category_dict[c][0].strfy())([category_dict[c]])
+        return np.sum(h).simplify()
+
+    @property
+    def E(self):
+        self.simplify()
+        h = []
+        for i, k in enumerate(self.opdict):
+            h.append(type(list(k)[0])())
+            h[i] *= self.opdict[k]
+            category_dict = self._get_category_dict(k)
+            for c in self._category_order:
+                if category_dict.get(c, False) and c in [
+                    "BosonOperator",
+                    "HardcoreBosonOperator",
+                    "FermionOperator",
+                ]:
+                    h[i] *= type(category_dict[c][0].strfy())([category_dict[c]]).E
+                elif category_dict.get(c, False):
+                    h[i] *= type(category_dict[c][0].strfy())([category_dict[c]])
+        result = np.sum(h).simplify()
+        if len(result.opdict) == 1:
+            for k, v in result.opdict.items():
+                if len(list(k)) == 1 and k[0].label[0] == -1:
+                    return v
+        else:
+            return result
 
 
 @np.vectorize

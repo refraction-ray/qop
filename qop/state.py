@@ -1,5 +1,5 @@
 import numpy as np
-from .base import assert_num, Operator, OperatorString
+from .base import assert_num, Operator, OperatorString, MultipleOperatorString
 from .boson import BosonOperator, BosonOperatorString
 from .fermion import FermionOperator, FermionOperatorString
 from .spin import SpinOperator, SpinOperatorString
@@ -21,9 +21,14 @@ class State:
         if ops is None:
             ops = self.get_OS()([[self.get_OP()()]])
         for k, v in ops.normal_order().opdict.items():
-            if not dagger and (list(k)[-1].d or list(k)[-1].label[0] == -1):
+            category_dict = MultipleOperatorString._get_category_dict(k)
+            nk = category_dict.get(self.get_OP().__name__, None)
+            if not nk:
+                newdict[k] = v  # const
+
+            elif not dagger and (list(nk)[-1].d or list(nk)[-1].label[0] == -1):
                 newdict[k] = v
-            if dagger and (not list(k)[0].d or list(k)[-1].label[0] == -1):
+            elif dagger and (not list(nk)[0].d or list(nk)[-1].label[0] == -1):
                 newdict[k] = v
         if not newdict:
             newdict = {tuple([self.get_OP()()]): 0.0}
@@ -85,7 +90,7 @@ class State:
         return n
 
     def to_ops(self):
-        return self.get_OS().from_opdict(self.opdict)
+        return MultipleOperatorString.from_opdict(self.opdict)
 
     @property
     def D(self):
@@ -121,7 +126,7 @@ class State:
     def __ror__(self, other):
         assert self.d is False
         if isinstance(other, Operator):
-            other = self.get_OS().from_op(other)
+            other = other.strfy()
         assert isinstance(other, OperatorString) or isinstance(other, State)
         if isinstance(other, OperatorString):
             return type(self)(other * self.to_ops())
@@ -131,7 +136,7 @@ class State:
     def __or__(self, other):
         assert self.d is True
         if isinstance(other, Operator):
-            other = self.get_OS().from_op(other)
+            other = other.strfy()
         assert isinstance(other, OperatorString) or isinstance(other, State)
         if isinstance(other, OperatorString):
             return type(self)(self.to_ops() * other, dagger=True)

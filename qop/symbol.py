@@ -2,7 +2,7 @@ import numpy as np
 from . import base
 
 
-class Symbol(base.Operator):
+class SymbolOperator(base.Operator):
     """
     only works as representation for complex numbers (Abelian baked in) not other operators
     """
@@ -53,10 +53,12 @@ class Symbol(base.Operator):
         return ops.evaluate_all(param_dict)
 
 
+Symbol = SymbolOperator
+
 Symbol()  # occupy the -1 count
 
 
-class SymbolString(base.OperatorString):
+class SymbolOperatorString(base.OperatorString):
     def conjugate(self):
         newdict = {}
         for k, v in self.opdict.items():
@@ -116,3 +118,6 @@ def evaluate(ops, param_dict):
 @np.vectorize
 def evaluate_all(ops, param_dict):
     return ops.evaluate_all(param_dict)
+
+
+SymbolString = SymbolOperatorString
