@@ -7,3 +7,4 @@ examples/debug.ipynb
 build/
 dist/
 qop.egg-info/
+.coverage

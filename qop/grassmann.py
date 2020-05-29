@@ -16,16 +16,6 @@ g = GrassmannOperator
 
 
 class GrassmannOperatorString(base.OperatorString):
-    def __eq__(self, other):
-        opdict1 = self.simplify().opdict
-        opdict2 = other.simplify().opdict
-        if len(opdict1) != len(opdict2):
-            return False
-        for k, v in opdict1.items():
-            if not np.allclose(opdict2.get(k, 0.0), v):
-                return False
-        return True
-
     def standardize(self, opl):
         """
 
