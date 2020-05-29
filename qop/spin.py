@@ -7,7 +7,7 @@ thismodule = sys.modules[__name__]
 
 
 class SpinOperator(base.Operator):
-    def __new__(cls, *args, direction="z", name="S", repr_=None):
+    def __new__(cls, *args, direction="z", name="s", repr_=None):
         key = (tuple(args), direction, name)
         if key in cls._exists:
             return cls._exists[key]

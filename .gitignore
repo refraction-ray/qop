@@ -4,3 +4,6 @@ DS_Store
 *__pycache__*
 *.ipynb_checkpoints*
 examples/debug.ipynb
+build/
+dist/
+qop.egg-info/
