@@ -1,5 +1,6 @@
 from ..symbol import *
 from ..fermion import *
+from ..state import *
 
 
 def test_symbol_with_op():
@@ -18,3 +19,8 @@ def test_symbol_with_op():
 def test_evaluate_mos():
     a = Symbol("a")
     assert (3 * c1.D * a * c2).evaluate({"a": 2}) == -6 * c2 * c1.D
+    U = Symbol("U")
+    assert (
+        Sf("12").D | U * (np.array([c1.D, c2.D]) @ np.array([c1, c2])) ** 2 | Sf("12")
+        == 4 * U
+    )

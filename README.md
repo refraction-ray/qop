@@ -68,7 +68,7 @@ And mix all, we have
 
 ```python
 U = Symbol("U")
-assert Sf("12").D | U * (np.array([c1.D, c2.D]) @ np.array([c1, c2])) ** 2 | Sf("12") == 4 * U2
+assert Sf("12").D | U * (np.array([c1.D, c2.D]) @ np.array([c1, c2])) ** 2 | Sf("12") == 4 * U
 ```
 
 See more examples in tests.

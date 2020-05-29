@@ -386,8 +386,8 @@ class MultipleOperatorString(OperatorString):
             for k, v in result.opdict.items():
                 if len(list(k)) == 1 and k[0].label[0] == -1:
                     return v
-        else:
-            return result
+
+        return result
 
 
 @np.vectorize
