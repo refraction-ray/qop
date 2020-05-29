@@ -18,28 +18,14 @@ hb = HardcoreBosonOperator
 
 
 class HardcoreBosonOperatorString(ParticleOperatorString):
-    def simplify(self):
-        newdict = {}
-        for k, v in self.opdict.items():
-            nk = []
-            zeroflag = False
-            for op in k:
-                if op.label[0] == -1:
-                    continue
-                if len(nk) > 0:
-                    if op == nk[-1]:
-                        zeroflag = True
-                        break
-                nk.append(op)
-            if len(nk) == 0:
-                nk = [self.OP()]
-            if not zeroflag and v != 0:
-                nk, coeff = self.standardize(nk)
-                newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
-        if len(newdict) == 0:
-            newdict[tuple([self.OP()])] = 0.0
-        self.opdict = newdict
-        return self
+    def standardize(self, opl):
+        nk, coeff = super().standardize(opl)
+        if len(nk) < 2:
+            return nk, coeff
+        for i, op in enumerate(list(nk)[:-1]):
+            if op == list(nk)[i + 1]:
+                return None, 0
+        return nk, coeff
 
     def exchange(self, opa, opb, coeff=1):
         # looks like fermion on the same label and looks like boson on the different label

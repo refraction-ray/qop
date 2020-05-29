@@ -83,30 +83,12 @@ class QuaternionOperatorString(base.OperatorString):
         re = self.D / self.norm() ** 2
         return other * re
 
-    def simplify(self):
-        newdict = {}
-        for k, v in self.opdict.items():
-            nk, coeff = self.standardize(list(k))
-            if v != 0:
-                newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
-        newdict = {k: v for k, v in newdict.items() if v != 0}
-        if len(newdict) == 0:
-            newdict[tuple([self.OP()])] = 0.0
-        self.opdict = newdict
-        return self
-
-    @classmethod
-    def standardize(cls, opl):
-        """
-
-        :param opl:
-        :return:
-        """
+    def standardize(self, opl):
         if len(opl) < 2:
             return opl, 1
         s, r = result_table[(opl[0].label[0], opl[1].label[0])]
         r = QuaternionOperator(r)
         nopl = [r]
         nopl.extend(opl[2:])
-        r2, s2 = cls.standardize(nopl)
+        r2, s2 = self.standardize(nopl)
         return r2, s * s2

@@ -107,36 +107,19 @@ class ParticleOperatorString(base.OperatorString):
                 return v
         return 0.0
 
-    def simplify(self):
-        newdict = {}
-        for k, v in self.opdict.items():
-            nk = []
-            for op in k:
-                if op.label[0] == -1:
-                    continue
-                nk.append(op)
-            if len(nk) == 0:
-                nk = [self.OP()]
-            if v != 0:
-                nk, coeff = self.standardize(nk)
-                newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
-        newdict = {k: v for k, v in newdict.items() if v != 0}
-        if len(newdict) == 0:
-            newdict[tuple([self.OP()])] = 0.0
-        self.opdict = newdict
-        return self
-
-    @classmethod
-    def standardize(cls, opl):
+    def standardize(self, opl):
         """
 
         :param opl:
         :return:
         """
+        nk, coeff = super().standardize(opl)
+        if len(nk) < 2:
+            return nk, coeff
         l = []
         innerl = []
         st = True
-        for op in opl:
+        for op in nk:
             if op.d and st:
                 innerl.append(op)
             elif not op.d and not st:
@@ -156,7 +139,7 @@ class ParticleOperatorString(base.OperatorString):
         nopl = []
         for il in l:
             nopl += sorted(il)
-        return nopl, 1.0
+        return nopl, coeff
 
     def no1(self):
         for oplist, v in self.opdict.items():

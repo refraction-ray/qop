@@ -126,20 +126,7 @@ class SpinOperatorString(base.OperatorString):
             hs[i] *= ops.opdict[k]
         return sum(hs)
 
-    def simplify(self):
-        newdict = {}
-        for k, v in self.opdict.items():
-            nk, coeff = self.standardize(list(k))
-            if v != 0:
-                newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
-        newdict = {k: v for k, v in newdict.items() if v != 0}
-        if len(newdict) == 0:
-            newdict[tuple([self.OP()])] = 0.0
-        self.opdict = newdict
-        return self
-
-    @classmethod
-    def standardize(cls, opl):
+    def standardize(self, opl):
         nopl = []
         for op in opl:
             if op.label[0] != -1:
@@ -155,7 +142,7 @@ class SpinOperatorString(base.OperatorString):
         nnopl = [SpinOperator()]
         for op in nopl:
             if op.label[:-1] == nnopl[-1].label[:-1]:
-                nnopl[-1], nsign = cls.spin_product(nnopl[-1], op)
+                nnopl[-1], nsign = self.spin_product(nnopl[-1], op)
                 sign *= nsign
             else:
                 nnopl.append(op)

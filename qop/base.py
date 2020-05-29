@@ -230,16 +230,25 @@ class OperatorString:
     def simplify(self):
         newdict = {}
         for k, v in self.opdict.items():
-            nk = []
-            for op in k:
-                if op.label[0] == -1:
-                    continue
-                nk.append(op)
-            if len(nk) == 0:
-                nk = [self.OP()]
-
-            newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + v
+            nk, coeff = self.standardize(k)
+            if coeff != 0:
+                newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
+        newdict = {k: v for k, v in newdict.items() if v != 0}
         if len(newdict) == 0:
             newdict[tuple([self.OP()])] = 0.0
         self.opdict = newdict
         return self
+
+    def standardize(self, opl):
+        if len(opl) == 0:
+            return [self.OP()], 1
+        if len(opl) == 1:
+            return opl, 1
+        nk = []
+        for op in list(opl):
+            if op.label[0] == -1:
+                continue
+            nk.append(op)
+        if len(nk) == 0:
+            nk = [type(opl[0])()]
+        return nk, 1

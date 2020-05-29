@@ -26,40 +26,28 @@ class GrassmannOperatorString(base.OperatorString):
                 return False
         return True
 
-    def simplify(self):
-        newdict = {}
-        for k, v in self.opdict.items():
-            nk, coeff = self.standardize(list(k))
-            zeroflag = False
-            nnk = []
-            for op in nk:
-                if op.label[0] == -1:
-                    continue
-                if len(nnk) > 0 and nnk[-1] == op:
-                    zeroflag = True
-                    break
-                nnk.append(op)
-            if len(nk) == 0:
-                nk = [self.OP()]
-            if v != 0 and not zeroflag:
-                newdict[tuple(nnk)] = newdict.get(tuple(nnk), 0) + coeff * v
-        if len(newdict) == 0:
-            newdict[tuple([self.OP()])] = 0.0
-        self.opdict = newdict
-        return self
-
-    @classmethod
-    def standardize(cls, opl):
+    def standardize(self, opl):
         """
 
         :param opl:
         :return:
         """
-        nopl = []
-        ti = sorted([[t, i] for i, t in enumerate(opl)], key=lambda s: s[0])
-        pm = np.zeros([len(opl), len(opl)])
+        nk = []
+        for op in opl:
+            if op.label[0] == -1:
+                continue
+            nk.append(op)
+        if len(nk) == 0:
+            return [self.OP()], 1
+        if len(nk) == 1:
+            return nk, 1
+        ti = sorted([[t, i] for i, t in enumerate(nk)], key=lambda s: s[0])
+        pm = np.zeros([len(nk), len(nk)])
         for j, tt in enumerate(ti):
             pm[j, int(tt[1])] = 1.0
         sign = np.linalg.det(pm)
         nopl = [tt[0] for tt in ti]
+        for i, op in enumerate(list(nopl)[:-1]):
+            if op == list(nopl)[i + 1]:
+                return None, 0
         return nopl, sign

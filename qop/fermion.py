@@ -22,41 +22,25 @@ f = FermionOperator
 
 
 class FermionOperatorString(ParticleOperatorString):
-    def simplify(self):
-        newdict = {}
-        for k, v in self.opdict.items():
-            nk = []
-            zeroflag = False
-            for op in k:
-                if op.label[0] == -1:
-                    continue
-                if len(nk) > 0:
-                    if op == nk[-1]:
-                        zeroflag = True
-                        break
-                nk.append(op)
-            if len(nk) == 0:
-                nk = [self.OP()]
-            if not zeroflag and v != 0:
-                nk, coeff = self.standardize(nk)
-                newdict[tuple(nk)] = newdict.get(tuple(nk), 0) + coeff * v
-        newdict = {k: v for k, v in newdict.items() if v != 0}
-        if len(newdict) == 0:
-            newdict[tuple([self.OP()])] = 0.0
-        self.opdict = newdict
-        return self
+    def standardize(self, opl):
 
-    @classmethod
-    def standardize(cls, opl):
-        """
-
-        :param opl:
-        :return:
-        """
+        nk = []
+        for op in opl:
+            if op.label[0] == -1:
+                continue
+            if len(nk) > 0:
+                if op == nk[-1]:
+                    return None, 0
+            nk.append(op)
+        if len(nk) == 0:
+            return [self.OP()], 1
+        if len(nk) == 1:
+            return nk, 1
+        ###
         l = []
         innerl = []
         st = True
-        for op in opl:
+        for op in list(nk):
             if op.d and st:
                 innerl.append(op)
             elif not op.d and not st:
