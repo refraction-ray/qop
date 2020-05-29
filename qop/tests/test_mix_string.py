@@ -1,5 +1,6 @@
 from ..symbol import *
 from ..fermion import *
+from ..spin import *
 from ..state import *
 
 
@@ -24,3 +25,8 @@ def test_evaluate_mos():
         Sf("12").D | U * (np.array([c1.D, c2.D]) @ np.array([c1, c2])) ** 2 | Sf("12")
         == 4 * U
     )
+
+
+def test_spin_symbol():
+    a = Symbol("a")
+    assert Ss("1").D | a * s1.z | Ss("1") == 0.5 * a

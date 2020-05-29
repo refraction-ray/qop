@@ -102,6 +102,10 @@ class Operator:
     def __hash__(self):
         return hash(self.key)
 
+    def evaluate(self, param_dict):
+        ops = self.strfy()
+        return ops.evaluate(param_dict)
+
 
 class OperatorString:
     def __init__(self, ops=None, coeff=None):
@@ -275,6 +279,9 @@ class OperatorString:
             nk = [type(opl[0])()]
         return nk, 1
 
+    def evaluate(self, param_dict):  # for compatibility
+        return self.simplify()
+
 
 class MultipleOperatorString(OperatorString):
     def __eq__(self, other):
@@ -364,6 +371,22 @@ class MultipleOperatorString(OperatorString):
                     h[i] *= type(category_dict[c][0].strfy())([category_dict[c]])
         return np.sum(h).simplify()
 
+    def to_hb(self):
+        self.simplify()
+        h = []
+        for i, k in enumerate(self.opdict):
+            h.append(type(list(k)[0])())
+            h[i] *= self.opdict[k]
+            category_dict = self._get_category_dict(k)
+            for c in self._category_order:
+                if category_dict.get(c, False) and c in ["SpinOperator"]:
+                    h[i] *= type(category_dict[c][0].strfy())(
+                        [category_dict[c]]
+                    ).to_hb()
+                elif category_dict.get(c, False):
+                    h[i] *= type(category_dict[c][0].strfy())([category_dict[c]])
+        return np.sum(h).simplify()
+
     @property
     def E(self):
         self.simplify()
@@ -393,3 +416,18 @@ class MultipleOperatorString(OperatorString):
 @np.vectorize
 def simplify(ops):
     return ops.simplify()
+
+
+@np.vectorize
+def normal_order(ops):
+    return ops.normal_order()
+
+
+@np.vectorize
+def evaluate(ops, param_dict):
+    return ops.evaluate(param_dict)
+
+
+@np.vectorize
+def evaluate_all(ops, param_dict):
+    return ops.evaluate_all(param_dict)

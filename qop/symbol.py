@@ -44,10 +44,6 @@ class SymbolOperator(base.Operator):
     def __lt__(self, other):
         return self.label < other.label
 
-    def evaluate(self, param_dict):
-        ops = self.strfy()
-        return ops.evaluate(param_dict)
-
     def evaluate_all(self, param_dict):
         ops = self.strfy()
         return ops.evaluate_all(param_dict)
@@ -108,16 +104,6 @@ class SymbolOperatorString(base.OperatorString):
         if len(nk) == 0:
             nk = [Symbol()]
         return nk, coeff
-
-
-@np.vectorize
-def evaluate(ops, param_dict):
-    return ops.evaluate(param_dict)
-
-
-@np.vectorize
-def evaluate_all(ops, param_dict):
-    return ops.evaluate_all(param_dict)
 
 
 SymbolString = SymbolOperatorString

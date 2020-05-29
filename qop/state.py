@@ -41,7 +41,7 @@ class State:
 
     @classmethod
     def get_OS(cls):
-        raise NotImplementedError()
+        return type(cls.get_OP()().strfy())
 
     @classmethod
     def from_opdict(cls, opdict, dagger=False):
@@ -155,10 +155,6 @@ class FermionState(State):
     def get_OP(cls):
         return FermionOperator
 
-    @classmethod
-    def get_OS(cls):
-        return FermionOperatorString
-
 
 def Sf(s="", normalized=True):
     return FermionState.from_str(s, normalized)
@@ -169,10 +165,6 @@ class BosonState(State):
     def get_OP(cls):
         return BosonOperator
 
-    @classmethod
-    def get_OS(cls):
-        return BosonOperatorString
-
 
 def Sb(s="", normalized=True):
     return BosonState.from_str(s, normalized)
@@ -182,10 +174,6 @@ class HardcoreBosonState(State):
     @classmethod
     def get_OP(cls):
         return HardcoreBosonOperator
-
-    @classmethod
-    def get_OS(cls):
-        return HardcoreBosonOperatorString
 
 
 def Shb(s="", normalized=True):
@@ -198,9 +186,11 @@ class SpinState(HardcoreBosonState):
         if isinstance(other, Operator):
             other = SpinOperatorString.from_op(other)
         assert isinstance(other, OperatorString) or isinstance(other, State)
-        if isinstance(other, SpinOperatorString):
+        if isinstance(other, SpinOperatorString) or isinstance(
+            other, MultipleOperatorString
+        ):
             return type(self)(other.to_hb() * self.to_ops())
-        elif isinstance(other, HardcoreBosonOperatorString):
+        elif isinstance(other, OperatorString):
             return type(self)(other * self.to_ops())
         else:  # other is left vector
             return (other.to_ops() * self.to_ops()).E
@@ -210,9 +200,12 @@ class SpinState(HardcoreBosonState):
         if isinstance(other, Operator):
             other = SpinOperatorString.from_op(other)
         assert isinstance(other, OperatorString) or isinstance(other, State)
-        if isinstance(other, SpinOperatorString):
+        print(other)
+        if isinstance(other, SpinOperatorString) or isinstance(
+            other, MultipleOperatorString
+        ):
             return type(self)(self.to_ops() * other.to_hb(), dagger=True)
-        elif isinstance(other, HardcoreBosonOperatorString):
+        elif isinstance(other, OperatorString):
             return type(self)(self.to_ops() * other, dagger=True)
         else:
             return (self.to_ops() * other.to_ops()).E
