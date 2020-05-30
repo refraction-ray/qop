@@ -3,6 +3,13 @@ import numpy as np
 
 
 def assert_num(c):
+    """
+    assert c is a c-number
+
+    :param c:
+    :return: Union[float, complex]
+    :raises ValueError: if c is not int/float/complex
+    """
     if isinstance(c, int):
         return float(c)
     if isinstance(c, float) or isinstance(c, complex):
@@ -11,6 +18,12 @@ def assert_num(c):
 
 
 def is_num(c):
+    """
+    whether c is a c-number
+
+    :param c:
+    :return: bool
+    """
     if isinstance(c, int) or isinstance(c, float) or isinstance(c, complex):
         return True
     return False
@@ -18,6 +31,10 @@ def is_num(c):
 
 @total_ordering
 class Operator:
+    """
+    operator is the generator and minimal ingredients of some algebra
+    """
+
     _exists = {}
 
     def __new__(cls, *args, name="OP", repr_=None):
@@ -108,6 +125,10 @@ class Operator:
 
 
 class OperatorString:
+    """
+    OPS is some formula with operators, such as 3*op1*op2+2*op3+5
+    """
+
     def __init__(self, ops=None, coeff=None):
         self.opdict = {}
         if not ops:
@@ -284,6 +305,11 @@ class OperatorString:
 
 
 class MultipleOperatorString(OperatorString):
+    """
+    MOS mix different types of operators, the common user case is symbol together with particles,
+    e.g. 3*a*c1.D
+    """
+
     def __eq__(self, other):
         self.normal_order()
         if getattr(other, "normal_order", False):

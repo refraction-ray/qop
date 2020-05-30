@@ -53,7 +53,7 @@ assert (1-qi)/(1-qj) == 0.5*(1-qi+qj-qk)
 ```python
 from qop.symbol import *
 a = Symbol("a")
-assert np.conj((2+a)).evaluate({"a": 1j}) == 2-1j
+assert np.conj(2+a).evaluate({"a": 1j}) == 2-1j
 ```
 
 * Quantum states
@@ -69,6 +69,15 @@ And mix all, we have
 ```python
 U = Symbol("U")
 assert Sf("12").D | U * (np.array([c1.D, c2.D]) @ np.array([c1, c2])) ** 2 | Sf("12") == 4 * U
+```
+
+Or einsum with opt_einsum
+
+```python
+from opt_einsum import contract
+from qop.symbol import *
+a,b,c,d = Symbols("abcd")
+simplify(contract("ijk,i->jk", d*np.ones([3,3,3]), np.array([a,b,c])))
 ```
 
 See more examples in tests.

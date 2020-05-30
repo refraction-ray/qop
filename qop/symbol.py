@@ -54,6 +54,10 @@ Symbol = SymbolOperator
 Symbol()  # occupy the -1 count
 
 
+def Symbols(s):
+    return [Symbol(c) for c in s]
+
+
 class SymbolOperatorString(base.OperatorString):
     def conjugate(self):
         newdict = {}
