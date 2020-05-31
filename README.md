@@ -74,10 +74,11 @@ assert Sf("12").D | U * (np.array([c1.D, c2.D]) @ np.array([c1, c2])) ** 2 | Sf(
 Or einsum with opt_einsum
 
 ```python
-from opt_einsum import contract
+from qop.base import *
 from qop.symbol import *
+from opt_einsum import contract
 a,b,c,d = Symbols("abcd")
-simplify(contract("ijk,i->jk", d*np.ones([3,3,3]), np.array([a,b,c])))
+simplify(contract("ijk,i->jk", d*np.ones([3,3,3]), np.array([a,b,c]), backend="qop"))
 ```
 
 See more examples in tests.
